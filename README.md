@@ -12,7 +12,7 @@
 ### Option 1: Use CLI (Recommended)
 
 ```bash
-npx @production-backend/express-starter my-backend
+npx exnj my-backend
 cd my-backend
 npm install
 cp .env.example .env
@@ -24,7 +24,7 @@ npm run dev
 ### Option 2: Clone & Install
 
 ```bash
-git clone https://github.com/your-org/express-production-starter.git my-backend
+git clone https://github.com/yashnevase/express-backend-boilerplate.git my-backend
 cd my-backend
 npm install
 cp .env.example .env

@@ -1,10 +1,10 @@
 {
-  "name": "production-backend-boilerplate",
+  "name": "exnj",
   "version": "1.0.0",
   "description": "Production-ready Express.js backend boilerplate with RBAC, security, caching, and best practices built-in",
   "main": "src/index.js",
   "bin": {
-    "create-production-backend": "./bin/cli.js"
+    "exnj": "./bin/cli.js"
   },
   "scripts": {
     "start": "node src/server.js",
@@ -79,10 +79,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yashnevase/production-backend-boilerplate.git"
+    "url": "https://github.com/yashnevase/express-backend-boilerplate.git"
   },
-  "homepage": "https://github.com/yashnevase/production-backend-boilerplate#readme",
+  "homepage": "https://github.com/yashnevase/express-backend-boilerplate#readme",
   "bugs": {
-    "url": "https://github.com/yashnevase/production-backend-boilerplate/issues"
+    "url": "https://github.com/yashnevase/express-backend-boilerplate/issues"
   }
 }
