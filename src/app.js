@@ -3,6 +3,7 @@ const path = require('path');
 const { initMiddleware } = require('./middleware/initMiddleware');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 const { trackAPIPerformance, getAPIStats, getTopSlowAPIs } = require('./middleware/apiTracker');
+const compression = require('compression');
 const logger = require('./config/logger');
 const cache = require('./utils/cache');
 
