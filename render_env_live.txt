@@ -1,0 +1,27 @@
+# ===============================================================
+# RENDER LIVE ENVIRONMENT VARIABLES (UPDATED - USE THESE!)
+# ===============================================================
+# Copy these and add them to your Render Dashboard Environment tab.
+
+NODE_ENV=production
+DATABASE_URL=postgres://postgres.ysbgupygbkwnxmhufdxi:Be%40ver%2320262075@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres
+DB_HOST=aws-1-ap-southeast-1.pooler.supabase.com
+DB_PORT=5432
+DB_NAME=postgres
+DB_USER=postgres.ysbgupygbkwnxmhufdxi
+DB_PASSWORD=Be@ver#20262075
+DB_SSL=true
+DB_DIALECT=postgres
+PORT=3001
+
+# AUTH SECRETS
+JWT_SECRET=change-this-to-a-very-long-secret-at-least-32-characters
+REFRESH_TOKEN_SECRET=change-this-refresh-secret-to-a-very-long-secret
+INVITE_TOKEN_SECRET=change-this-invite-secret-to-a-very-long-secret
+BCRYPT_ROUNDS=12
+
+# BASE URLS
+BASE_URL=https://beaver-4c88.onrender.com
+FRONTEND_URL=https://beaver-4c88.onrender.com
+ALLOWED_ORIGINS=https://beaver-4c88.onrender.com
+

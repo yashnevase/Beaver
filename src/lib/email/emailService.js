@@ -40,8 +40,8 @@ const emailTemplates = {
       <div class="wrapper">
         <div class="container">
           <div class="header">
-            <img src="${process.env.FRONTEND_URL}/vite.svg" alt="Logo" class="logo" onerror="this.style.display='none'" />
-            <h1>Welcome to Mission Shakti</h1>
+            <img src="${process.env.BASE_URL}/logo.png" alt="Beaver Logo" class="logo" onerror="this.style.display='none'" />
+            <h1>Welcome to Beaver</h1>
           </div>
           <div class="content">
             <h2>Hi ${data.name},</h2>
@@ -51,7 +51,7 @@ const emailTemplates = {
             <p style="margin-top: 32px; color: #6b7280; font-size: 14px;">If you have any questions, reply to this email to get in touch with our team.</p>
           </div>
           <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Beaver Rentals. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Beaver. All rights reserved.</p>
           </div>
         </div>
       </div>
@@ -67,7 +67,7 @@ const emailTemplates = {
       <div class="wrapper">
         <div class="container">
           <div class="header">
-            <img src="${process.env.FRONTEND_URL}/vite.svg" alt="Logo" class="logo" onerror="this.style.display='none'" />
+            <img src="${process.env.BASE_URL}/logo.png" alt="Beaver Logo" class="logo" onerror="this.style.display='none'" />
             <h1>Reset your password</h1>
           </div>
           <div class="content">
@@ -79,7 +79,7 @@ const emailTemplates = {
             </div>
           </div>
           <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Beaver Rentals. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Beaver. All rights reserved.</p>
           </div>
         </div>
       </div>
@@ -95,7 +95,7 @@ const emailTemplates = {
       <div class="wrapper">
         <div class="container">
           <div class="header">
-            <img src="${process.env.FRONTEND_URL}/vite.svg" alt="Logo" class="logo" onerror="this.style.display='none'" />
+            <img src="${process.env.BASE_URL}/logo.png" alt="Beaver Logo" class="logo" onerror="this.style.display='none'" />
             <h1>Your secure authentication code</h1>
           </div>
           <div class="content">
@@ -105,7 +105,7 @@ const emailTemplates = {
             <p style="color: #6b7280; font-size: 14px;">If you didn't request this code, no further action is required.</p>
           </div>
           <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Beaver Rentals. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Beaver. All rights reserved.</p>
           </div>
         </div>
       </div>
@@ -121,7 +121,7 @@ const emailTemplates = {
       <div class="wrapper">
         <div class="container">
           <div class="header">
-            <img src="${process.env.FRONTEND_URL}/vite.svg" alt="Logo" class="logo" onerror="this.style.display='none'" />
+            <img src="${process.env.BASE_URL}/logo.png" alt="Beaver Logo" class="logo" onerror="this.style.display='none'" />
             <h1>${data.title}</h1>
           </div>
           <div class="content">
@@ -129,7 +129,7 @@ const emailTemplates = {
             <p>${data.message}</p>
           </div>
           <div class="footer">
-            <p>&copy; ${new Date().getFullYear()} Beaver Rentals. All rights reserved.</p>
+            <p>&copy; ${new Date().getFullYear()} Beaver. All rights reserved.</p>
           </div>
         </div>
       </div>
