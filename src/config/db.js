@@ -15,7 +15,7 @@ const sequelize = process.env.DATABASE_URL
         require: true,
         rejectUnauthorized: false
       } : false,
-      family: 4
+      family: 4 // FORCE IPv4 for Render
     },
     define: {
       timestamps: true,
