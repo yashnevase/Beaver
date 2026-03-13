@@ -2,26 +2,34 @@ const db = require('./src/models');
 
 const fixSequences = async () => {
   try {
+    // Better query using information_schema to find table-column-sequence triplets
     const [results] = await db.sequelize.query(`
-      SELECT 'SELECT setval(' || quote_literal(quote_ident(s.relname)) || ', COALESCE(MAX(' || quote_ident(c.attname) || '), 1)) FROM ' || quote_ident(t.relname) || ';' AS query
-      FROM pg_class AS s
-      JOIN pg_depend AS d ON d.objid = s.oid
-      JOIN pg_class AS t ON d.refobjid = t.oid
-      JOIN pg_attribute AS c ON d.refobjid = c.attrelid AND d.refobjsubid = c.attnum
-      WHERE s.relkind = 'S' AND d.deptype = 'a';
+      SELECT 
+        table_name as "tableName",
+        column_name as "columnName",
+        replace(replace(column_default, 'nextval(''', ''), '''::regclass)', '') as "sequenceName"
+      FROM information_schema.columns 
+      WHERE column_default LIKE 'nextval%'
+      AND table_schema = 'public';
     `);
 
-    console.log('Found sequences to fix:', results.length);
+    console.log('Found sequences to check:', results.length);
 
     for (const row of results) {
-      console.log('Executing:', row.query);
-      await db.sequelize.query(row.query);
+      try {
+        // Double check if column exists by trying a simple SELECT
+        const query = `SELECT setval('${row.sequenceName}', COALESCE(MAX(${row.columnName}), 1)) FROM ${row.tableName};`;
+        console.log('Synchronizing:', row.tableName, '(', row.columnName, ')');
+        await db.sequelize.query(query);
+      } catch (err) {
+        console.warn(`Skipping sequence for ${row.tableName}.${row.columnName}: ${err.message}`);
+      }
     }
 
-    console.log('All sequences synchronized successfully.');
+    console.log('Sequence synchronization completed.');
     process.exit(0);
   } catch (error) {
-    console.error('Error fixing sequences:', error);
+    console.error('Critical error in sequence fixer:', error);
     process.exit(1);
   }
 };
