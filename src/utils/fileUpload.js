@@ -41,7 +41,15 @@ const storage = multer.diskStorage({
     const uniqueSuffix = crypto.randomBytes(16).toString('hex');
     const ext = path.extname(file.originalname);
     const basename = path.basename(file.originalname, ext);
-    const sanitizedBasename = basename.replace(/[^a-zA-Z0-9_-]/g, '_');
+    let sanitizedBasename = basename.replace(/[^a-zA-Z0-9_-]/g, '_');
+    
+    // Check if filename contains terms often blocked by AdBlockers (like tenant, owner, admin)
+    const lowerName = sanitizedBasename.toLowerCase();
+    const sensitiveTerms = ['tenant', 'tenent', 'owner', 'ownwer', 'admin', 'advert', 'track'];
+    if (sensitiveTerms.some(term => lowerName.includes(term))) {
+      sanitizedBasename = `beaver_file_${uniqueSuffix.substring(0, 8)}`;
+    }
+    
     cb(null, `${sanitizedBasename}_${uniqueSuffix}${ext}`);
   }
 });
