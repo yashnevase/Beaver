@@ -7,15 +7,14 @@ const createUserSchema = Joi.object({
     .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
     .required(),
   full_name: Joi.string().min(2).max(100).required(),
-  role_name: Joi.string().valid('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'USER').optional()
+  role: Joi.string().valid('owner', 'tenant', 'admin').optional()
 });
 
 const updateUserSchema = Joi.object({
   full_name: Joi.string().min(2).max(100).optional(),
-  role_name: Joi.string().valid('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'USER').optional(),
+  role: Joi.string().valid('owner', 'tenant', 'admin').optional(),
   is_active: Joi.boolean().optional(),
   email_verified: Joi.boolean().optional(),
-  scheduled_deactivation_at: Joi.date().iso().optional(),
   profile_photo: Joi.string().uri().optional()
 });
 

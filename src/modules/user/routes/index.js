@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const userExportController = require('../controllers/userExportController');
+const profileRoutes = require('./profileRoutes');
 const { authenticateToken, requirePermission } = require('../../../middleware/auth');
 const { validateBody, validateParams } = require('../../../middleware/validate');
 const userValidators = require('../validators/userValidators');
@@ -9,6 +10,8 @@ const userValidators = require('../validators/userValidators');
 // User Management Module Routes
 // Base path: /api/users
 // All routes require authentication and appropriate permissions
+
+router.use('/me', profileRoutes);
 
 // Get all users with pagination and filters
 // Query params: page, limit, role, is_active, search

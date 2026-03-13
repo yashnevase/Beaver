@@ -18,7 +18,11 @@ const registerSchema = Joi.object({
     'string.min': 'Full name must be at least 2 characters long',
     'string.max': 'Full name cannot exceed 100 characters',
     'any.required': 'Full name is required'
-  })
+  }),
+  phone: Joi.string().pattern(/^[0-9]{10}$/).optional().messages({
+    'string.pattern.base': 'Phone number must be 10 digits'
+  }),
+  role: Joi.string().valid('owner', 'tenant').default('tenant')
 });
 
 const verifyOTPSchema = Joi.object({

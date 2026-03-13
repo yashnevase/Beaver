@@ -1,6 +1,7 @@
 const db = require('../../../models');
 const { ApiError } = require('../../../middleware/errorHandler');
 const cache = require('../../../lib/cache');
+const { ROLES } = require('../../../constants/roles');
 const { getPaginationParams, getSortParams, buildPaginationResponse } = require('../../../utils/pagination');
 const logger = require('../../../config/logger');
 const datetimeService = require('../../../lib/datetime');
@@ -18,10 +19,7 @@ const getAll = async (query, currentUserId) => {
   };
   
   if (query.role) {
-    const role = await db.Role.findOne({ where: { role_name: query.role } });
-    if (role) {
-      whereClause.role = role.role_id;
-    }
+    whereClause.role = query.role;
   }
   
   if (query.is_active !== undefined) {
@@ -34,18 +32,14 @@ const getAll = async (query, currentUserId) => {
   
   if (query.search) {
     whereClause[db.Sequelize.Op.or] = [
-      { email: { [db.Sequelize.Op.iLike]: `%${query.search}%` } },
-      { full_name: { [db.Sequelize.Op.iLike]: `%${query.search}%` } }
+      { email: { [db.Sequelize.Op.like]: `%${query.search}%` } },
+      { full_name: { [db.Sequelize.Op.like]: `%${query.search}%` } }
     ];
   }
   
   const { count, rows } = await db.User.findAndCountAll({
     where: whereClause,
-    include: [{
-      model: db.Role,
-      as: 'userRole',
-      attributes: ['role_id', 'role_name', 'description']
-    }],
+    attributes: { exclude: ['password_hash', 'password_reset_token'] },
     order: [[sort, order]],
     limit,
     offset
@@ -67,17 +61,7 @@ const getById = async (userId) => {
     where: { 
       user_id: userId,
       deleted_at: null
-    },
-    include: [{
-      model: db.Role,
-      as: 'userRole',
-      attributes: ['role_id', 'role_name', 'description'],
-      include: [{
-        model: db.Permission,
-        as: 'permissions',
-        attributes: ['permission_key', 'permission_name', 'module']
-      }]
-    }]
+    }
   });
   
   if (!user) {
@@ -90,7 +74,7 @@ const getById = async (userId) => {
 };
 
 const create = async (userData, currentUserId) => {
-  const { email, password, full_name, role_name } = userData;
+  const { email, password, full_name, role } = userData;
   
   const existingUser = await db.User.findOne({ where: { email } });
   if (existingUser) {
@@ -101,25 +85,16 @@ const create = async (userData, currentUserId) => {
   const bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
   const passwordHash = await bcrypt.hash(password, bcryptRounds);
   
-  let roleId = null;
-  if (role_name) {
-    const role = await db.Role.findOne({ where: { role_name } });
-    if (role) {
-      roleId = role.role_id;
-    }
-  } else {
-    const defaultRole = await db.Role.findOne({ where: { role_name: 'USER' } });
-    roleId = defaultRole ? defaultRole.role_id : null;
-  }
+  const validRoles = Object.keys(ROLES);
+  const userRole = validRoles.includes(role) ? role : 'tenant';
   
   const user = await db.User.create({
     email,
     password_hash: passwordHash,
     full_name,
-    role: roleId,
+    role: userRole,
     is_active: true,
-    email_verified: true,
-    created_by: currentUserId
+    email_verified: true
   });
   
   await cache.del('users:all:*');
@@ -141,7 +116,7 @@ const update = async (userId, updateData, currentUserId) => {
     throw ApiError.notFound('User not found');
   }
   
-  const allowedFields = ['full_name', 'is_active', 'email_verified', 'scheduled_deactivation_at', 'profile_photo'];
+  const allowedFields = ['full_name', 'is_active', 'email_verified', 'profile_photo'];
   const filteredData = {};
   
   allowedFields.forEach(field => {
@@ -150,14 +125,12 @@ const update = async (userId, updateData, currentUserId) => {
     }
   });
   
-  if (updateData.role_name) {
-    const role = await db.Role.findOne({ where: { role_name: updateData.role_name } });
-    if (role) {
-      filteredData.role = role.role_id;
+  if (updateData.role) {
+    const validRoles = Object.keys(ROLES);
+    if (validRoles.includes(updateData.role)) {
+      filteredData.role = updateData.role;
     }
   }
-  
-  filteredData.updated_by = currentUserId;
   
   await user.update(filteredData);
   
@@ -183,7 +156,6 @@ const remove = async (userId, currentUserId) => {
   
   await user.update({
     deleted_at: new Date(),
-    deleted_by: currentUserId,
     is_active: false
   });
   
@@ -202,10 +174,7 @@ const activate = async (userId, currentUserId) => {
     throw ApiError.notFound('User not found');
   }
   
-  await user.update({
-    is_active: true,
-    updated_by: currentUserId
-  });
+  await user.update({ is_active: true });
   
   await cache.del(`user:${userId}`);
   await cache.del('users:all:*');
@@ -222,10 +191,7 @@ const deactivate = async (userId, currentUserId) => {
     throw ApiError.notFound('User not found');
   }
   
-  await user.update({
-    is_active: false,
-    updated_by: currentUserId
-  });
+  await user.update({ is_active: false });
   
   await cache.del(`user:${userId}`);
   await cache.del('users:all:*');
@@ -248,14 +214,6 @@ const scheduleDeactivation = async (userId, deactivationDate, currentUserId) => 
     throw ApiError.badRequest('Deactivation date must be in the future');
   }
   
-  await user.update({
-    scheduled_deactivation_at: scheduledDate,
-    updated_by: currentUserId
-  });
-  
-  await cache.del(`user:${userId}`);
-  await cache.del('users:all:*');
-  
   logger.info(`User deactivation scheduled: ${user.email} for ${scheduledDate} by user ${currentUserId}`);
   
   return { 
@@ -272,16 +230,13 @@ const assignRole = async (userId, roleName, currentUserId) => {
     throw ApiError.notFound('User not found');
   }
   
-  const role = await db.Role.findOne({ where: { role_name: roleName } });
-  
-  if (!role) {
-    throw ApiError.notFound('Role not found');
+  const validRoles = Object.keys(ROLES);
+  if (!validRoles.includes(roleName)) {
+    throw ApiError.badRequest(`Invalid role: ${roleName}. Valid roles: ${validRoles.join(', ')}`);
   }
   
-  await user.update({
-    role: role.role_id,
-    updated_by: currentUserId
-  });
+  const oldRole = user.role;
+  await user.update({ role: roleName });
   
   await cache.del(`user:${userId}`);
   await cache.del('users:all:*');
@@ -291,7 +246,8 @@ const assignRole = async (userId, roleName, currentUserId) => {
   return { 
     message: 'Role assigned successfully', 
     user: user.toJSON(),
-    role: role
+    oldRole,
+    newRole: roleName
   };
 };
 

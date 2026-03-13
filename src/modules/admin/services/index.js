@@ -1,7 +1,5 @@
-const roleService = require('./roleService');
-const permissionService = require('./permissionService');
+const adminService = require('./adminService');
 
 module.exports = {
-  roleService,
-  permissionService
+  adminService
 };

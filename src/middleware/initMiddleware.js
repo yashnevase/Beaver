@@ -93,7 +93,12 @@ const initMiddleware = (app) => {
     next();
   });
   
-  app.use(express.json({ limit: '10mb' }));
+  app.use(express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+      req.rawBody = buf.toString();
+    }
+  }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   
   if (process.env.ENABLE_SECURITY_MW !== 'false') {

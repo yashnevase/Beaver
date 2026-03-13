@@ -1,45 +1,39 @@
 const { PERMISSIONS } = require('./permissions');
 
 const ROLES = {
-  SUPER_ADMIN: {
-    name: 'Super Admin',
-    description: 'Full system access',
-    permissions: Object.keys(PERMISSIONS)
+  owner: {
+    name: 'Owner',
+    description: 'Property owner - can manage properties, agreements, invites, view payments',
+    permissions: [
+      'properties.create', 'properties.view', 'properties.update', 'properties.delete',
+      'agreements.create', 'agreements.view', 'agreements.update', 'agreements.revoke',
+      'invites.create', 'invites.view',
+      'payments.view',
+      'transactions.view', 'transactions.export',
+      'chat.send', 'chat.view',
+      'notifications.view',
+      'dashboard.view', 'dashboard.analytics'
+    ]
   },
-  
-  ADMIN: {
+
+  tenant: {
+    name: 'Tenant',
+    description: 'Tenant - can view property, pay rent, chat with owner',
+    permissions: [
+      'properties.view',
+      'agreements.view',
+      'payments.initiate', 'payments.view',
+      'transactions.view',
+      'chat.send', 'chat.view',
+      'notifications.view',
+      'dashboard.view'
+    ]
+  },
+
+  admin: {
     name: 'Admin',
-    description: 'Administrative access',
-    permissions: [
-      'users.view',
-      'users.create',
-      'users.update',
-      'roles.view',
-      'settings.view',
-      'settings.update',
-      'audit.view',
-      'reports.view',
-      'reports.export'
-    ]
-  },
-  
-  MANAGER: {
-    name: 'Manager',
-    description: 'Manager level access',
-    permissions: [
-      'users.view',
-      'reports.view',
-      'reports.export',
-      'reports.create'
-    ]
-  },
-  
-  USER: {
-    name: 'User',
-    description: 'Standard user access',
-    permissions: [
-      'users.view'
-    ]
+    description: 'Platform admin - full access',
+    permissions: Object.keys(PERMISSIONS)
   }
 };
 

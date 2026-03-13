@@ -1,7 +1,3 @@
-const roleController = require('./roleController');
-const permissionController = require('./permissionController');
+const adminController = require('./adminController');
 
-module.exports = {
-  roleController,
-  permissionController
-};
+module.exports = adminController;

@@ -6,7 +6,8 @@ const createRateLimiter = (options = {}) => {
     windowMs = 15 * 60 * 1000,
     max = 100,
     message = 'Too many requests',
-    keyGenerator = (req) => req.ip
+    keyGenerator = (req) => req.ip,
+    skipSuccessfulRequests = false
   } = options;
   
   return rateLimit({
@@ -15,6 +16,7 @@ const createRateLimiter = (options = {}) => {
     message: { error: message, retryAfter: Math.ceil(windowMs / 1000) },
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests,
     keyGenerator,
     handler: (req, res) => {
       logger.warn(`Rate limit exceeded - Key: ${keyGenerator(req)}, Path: ${req.path}`);

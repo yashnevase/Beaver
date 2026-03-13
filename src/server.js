@@ -5,6 +5,7 @@ const { startAllJobs } = require('./jobs');
 const app = require('./app');
 const { testConnection, closeConnection } = require('./config/db');
 const logger = require('./config/logger');
+const { initSocket } = require('./config/socket');
 
 const PORT = process.env.PORT || 3001;
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -22,6 +23,68 @@ const calculateWorkers = () => {
   }
   
   return Math.max(1, numCPUs - 2);
+};
+
+const startHttpServer = () => {
+  const server = app.listen(PORT, async () => {
+    const workerId = cluster.isWorker ? `Worker ${cluster.worker.id}` : 'Single process';
+    logger.info(`${workerId} started on port ${PORT} in ${NODE_ENV} mode`);
+    
+    const dbConnected = await testConnection();
+    if (!dbConnected) {
+      logger.error('Database connection failed. Exiting...');
+      process.exit(1);
+    }
+
+    // Sync tables that may not exist in the initial schema
+    try {
+      const db = require('./models');
+      await db.AgreementDocument.sync({ alter: true });
+      await db.AgreementEvent.sync({ alter: true });
+      await db.PropertyImage.sync({ alter: true });
+      // Ensure Agreement table has all extra columns (accepted_at, closed_at, etc.)
+      await db.Agreement.sync({ alter: true });
+      logger.info('✓ Extended tables synced successfully');
+    } catch (syncErr) {
+      logger.warn('Table sync warning (non-fatal):', syncErr.message);
+    }
+
+    initSocket(server);
+    
+    if (!cluster.isWorker || cluster.worker.id === 1) {
+      startAllJobs();
+    }
+  });
+
+  const gracefulShutdown = async (signal) => {
+    logger.info(`Received ${signal}. Starting graceful shutdown...`);
+    
+    server.close(async () => {
+      logger.info('HTTP server closed');
+      await closeConnection();
+      logger.info('Graceful shutdown completed');
+      process.exit(0);
+    });
+    
+    setTimeout(() => {
+      logger.error('Forced shutdown after timeout');
+      process.exit(1);
+    }, 30000);
+  };
+
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', error);
+    gracefulShutdown('uncaughtException');
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  });
+
+  return server;
 };
 
 if (ENABLE_CLUSTER && cluster.isMaster) {
@@ -44,54 +107,7 @@ if (ENABLE_CLUSTER && cluster.isMaster) {
   });
   
 } else {
-  const server = app.listen(PORT, async () => {
-    const workerId = cluster.isWorker ? `Worker ${cluster.worker.id}` : 'Single process';
-    logger.info(`${workerId} started on port ${PORT} in ${NODE_ENV} mode`);
-    
-    const dbConnected = await testConnection();
-    if (!dbConnected) {
-      logger.error('Database connection failed. Exiting...');
-      process.exit(1);
-    }
-    
-    if (!cluster.isWorker || cluster.worker.id === 1) {
-      const { startAllJobs } = require('./jobs');
-      startAllJobs();
-    }
-    
-    if (process.env.ENABLE_SYSTEM_HEALTH_LOG === 'true' && (!cluster.isWorker || cluster.worker.id === 1)) {
-      const { startSystemMonitoring } = require('./utils/systemMonitor');
-      startSystemMonitoring(5);
-    }
-  });
-  
-  const gracefulShutdown = async (signal) => {
-    logger.info(`Received ${signal}. Starting graceful shutdown...`);
-    
-    server.close(async () => {
-      logger.info('HTTP server closed');
-      
-      await closeConnection();
-      
-      logger.info('Graceful shutdown completed');
-      process.exit(0);
-    });
-    
-    setTimeout(() => {
-      logger.error('Forced shutdown after timeout');
-      process.exit(1);
-    }, 30000);
-  };
-  
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-  
-  process.on('uncaughtException', (error) => {
-    logger.error('Uncaught Exception:', error);
-    gracefulShutdown('uncaughtException');
-  });
-  
-  process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  });
+  startHttpServer();
 }
+
+module.exports = { app, startHttpServer };

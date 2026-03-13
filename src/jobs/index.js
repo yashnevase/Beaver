@@ -1,13 +1,17 @@
-const { startUserDeactivationJob } = require('./userDeactivationJob');
 const { startCleanupJob } = require('./cleanupJob');
+const { startDuesJob } = require('./duesJob');
+const { startAgreementExpiryJob } = require('./agreementExpiryJob');
+const { startOverdueReminderJob } = require('./overdueReminderJob');
 const logger = require('../config/logger');
 
 const startAllJobs = () => {
   logger.info('Initializing cron jobs...');
 
   const jobs = {
-    userDeactivation: startUserDeactivationJob(),
-    cleanup: startCleanupJob()
+    cleanup: startCleanupJob(),
+    dues: startDuesJob(),
+    agreementExpiry: startAgreementExpiryJob(),
+    overdueReminder: startOverdueReminderJob()
   };
 
   const activeJobs = Object.entries(jobs)

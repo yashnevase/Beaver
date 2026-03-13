@@ -17,13 +17,13 @@ const actionLogger = async (req, res, next) => {
   res.send = function(data) {
     responseBody = data;
     responseStatus = res.statusCode;
-    originalSend.call(this, data);
+    return originalSend.call(this, data);
   };
 
   res.json = function(data) {
     responseBody = data;
     responseStatus = res.statusCode;
-    originalJson.call(this, data);
+    return originalJson.call(this, data);
   };
 
   res.on('finish', async () => {

@@ -23,9 +23,55 @@ module.exports = (sequelize) => {
       type: DataTypes.STRING(100),
       allowNull: false
     },
-    role: {
-      type: DataTypes.INTEGER,
+    phone: {
+      type: DataTypes.STRING(15),
       allowNull: true
+    },
+    address_line: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    city: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    state: {
+      type: DataTypes.STRING(100),
+      allowNull: true
+    },
+    pincode: {
+      type: DataTypes.STRING(10),
+      allowNull: true
+    },
+    bank_account_number: {
+      type: DataTypes.STRING(50),
+      allowNull: true
+    },
+    bank_ifsc: {
+      type: DataTypes.STRING(20),
+      allowNull: true
+    },
+    bank_name: {
+      type: DataTypes.STRING(200),
+      allowNull: true
+    },
+    date_of_birth: {
+      type: DataTypes.DATEONLY,
+      allowNull: true
+    },
+    gender: {
+      type: DataTypes.ENUM('male', 'female', 'other'),
+      allowNull: true
+    },
+    role: {
+      type: DataTypes.ENUM('owner', 'tenant', 'admin'),
+      allowNull: false,
+      defaultValue: 'tenant'
+    },
+    tier: {
+      type: DataTypes.ENUM('free', 'pro'),
+      allowNull: false,
+      defaultValue: 'free'
     },
     is_active: {
       type: DataTypes.BOOLEAN,
@@ -51,24 +97,8 @@ module.exports = (sequelize) => {
       type: DataTypes.INTEGER,
       defaultValue: 0
     },
-    scheduled_deactivation_at: {
-      type: DataTypes.DATE,
-      allowNull: true
-    },
     profile_photo: {
       type: DataTypes.STRING(500),
-      allowNull: true
-    },
-    created_by: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
-    updated_by: {
-      type: DataTypes.INTEGER,
-      allowNull: true
-    },
-    deleted_by: {
-      type: DataTypes.INTEGER,
       allowNull: true
     },
     deleted_at: {
@@ -83,8 +113,8 @@ module.exports = (sequelize) => {
     indexes: [
       { fields: ['email'] },
       { fields: ['role'] },
+      { fields: ['tier'] },
       { fields: ['is_active'] },
-      { fields: ['scheduled_deactivation_at'] },
       { fields: ['deleted_at'] }
     ]
   });
@@ -93,7 +123,6 @@ module.exports = (sequelize) => {
     const values = { ...this.get() };
     delete values.password_hash;
     delete values.password_reset_token;
-    delete values.otp_code;
     return values;
   };
   

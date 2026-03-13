@@ -2,9 +2,10 @@ const userExportService = require('../services/userExportService');
 
 const exportExcel = async (req, res, next) => {
   try {
-    const { buffer, filename } = await userExportService.exportToExcel(req.query, req.user);
+    const result = await userExportService.exportToExcel(req.query, req.user);
+    const { buffer, filename } = result;
     
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Type', result.contentType || 'text/tab-separated-values');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.send(buffer);
   } catch (error) {

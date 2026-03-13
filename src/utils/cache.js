@@ -72,6 +72,26 @@ class Cache {
     }
   }
   
+  async delByPrefix(prefix) {
+    try {
+      if (this.type === 'memory') {
+        let count = 0;
+        for (const key of this.store.keys()) {
+          if (key.startsWith(prefix)) {
+            this.store.delete(key);
+            count++;
+          }
+        }
+        this.stats.deletes += count;
+        return count > 0;
+      }
+      return false;
+    } catch (error) {
+      logger.error('Cache delByPrefix error:', error);
+      return false;
+    }
+  }
+  
   async clear() {
     try {
       if (this.type === 'memory') {

@@ -36,11 +36,11 @@ module.exports = (sequelize) => {
       allowNull: false
     },
     request_body: {
-      type: DataTypes.JSONB,
+      type: DataTypes.JSON,
       allowNull: true
     },
     request_query: {
-      type: DataTypes.JSONB,
+      type: DataTypes.JSON,
       allowNull: true
     },
     response_status: {

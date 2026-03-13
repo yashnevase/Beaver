@@ -39,7 +39,7 @@ const auditLog = (action, options = {}) => {
         }
       });
       
-      originalSend.call(this, data);
+      return originalSend.call(this, data);
     };
     
     next();

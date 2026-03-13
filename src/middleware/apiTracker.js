@@ -77,7 +77,7 @@ const trackAPIPerformance = (req, res, next) => {
     
     updateAPIStats(req.path, duration, res.statusCode);
     
-    originalSend.call(this, data);
+    return originalSend.call(this, data);
   };
   
   next();

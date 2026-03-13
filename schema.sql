@@ -1,317 +1,278 @@
--- Express Production Starter - Complete Database Schema
--- PostgreSQL Database Schema
+-- Beaver Rental SaaS - MySQL Schema Snapshot
+-- Core schema aligned with Sequelize models and Beaver MVP
 
--- Drop existing tables if they exist (in correct order due to foreign keys)
-DROP TABLE IF EXISTS action_logs CASCADE;
-DROP TABLE IF EXISTS approval_requests CASCADE;
-DROP TABLE IF EXISTS role_permissions CASCADE;
-DROP TABLE IF EXISTS permissions CASCADE;
-DROP TABLE IF EXISTS refresh_tokens CASCADE;
-DROP TABLE IF EXISTS audit_logs CASCADE;
-DROP TABLE IF EXISTS roles CASCADE;
-DROP TABLE IF EXISTS users CASCADE;
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
 
--- Users Table
+DROP TABLE IF EXISTS audit_logs;
+DROP TABLE IF EXISTS action_logs;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS chats;
+DROP TABLE IF EXISTS transactions;
+DROP TABLE IF EXISTS agreements;
+DROP TABLE IF EXISTS invites;
+DROP TABLE IF EXISTS properties;
+DROP TABLE IF EXISTS otps;
+DROP TABLE IF EXISTS refresh_tokens;
+DROP TABLE IF EXISTS users;
+
 CREATE TABLE users (
-    user_id SERIAL PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(100) NOT NULL,
-    role INTEGER,
-    is_active BOOLEAN DEFAULT TRUE,
-    email_verified BOOLEAN DEFAULT FALSE,
-    last_login_at TIMESTAMP,
-    password_reset_token VARCHAR(255),
-    password_reset_token_expires_at TIMESTAMP,
-    refresh_token_version INTEGER DEFAULT 0,
-    scheduled_deactivation_at TIMESTAMP,
-    profile_photo VARCHAR(500),
-    created_by INTEGER,
-    updated_by INTEGER,
-    deleted_by INTEGER,
-    deleted_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+  user_id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  full_name VARCHAR(100) NOT NULL,
+  phone VARCHAR(15) NULL,
+  role ENUM('owner','tenant','admin') NOT NULL DEFAULT 'tenant',
+  tier ENUM('free','pro') NOT NULL DEFAULT 'free',
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  email_verified TINYINT(1) NOT NULL DEFAULT 0,
+  last_login_at DATETIME NULL,
+  password_reset_token VARCHAR(255) NULL,
+  password_reset_token_expires_at DATETIME NULL,
+  refresh_token_version INT NOT NULL DEFAULT 0,
+  profile_photo VARCHAR(500) NULL,
+  deleted_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_users_role (role),
+  INDEX idx_users_tier (tier),
+  INDEX idx_users_is_active (is_active),
+  INDEX idx_users_deleted_at (deleted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role);
-CREATE INDEX idx_users_is_active ON users(is_active);
-CREATE INDEX idx_users_scheduled_deactivation ON users(scheduled_deactivation_at);
-CREATE INDEX idx_users_deleted_at ON users(deleted_at);
-
--- Roles Table
-CREATE TABLE roles (
-    role_id SERIAL PRIMARY KEY,
-    role_name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT,
-    is_system_role BOOLEAN DEFAULT FALSE,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_by INTEGER,
-    updated_by INTEGER,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL,
-    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL
-);
-
-CREATE INDEX idx_roles_name ON roles(role_name);
-CREATE INDEX idx_roles_system ON roles(is_system_role);
-CREATE INDEX idx_roles_active ON roles(is_active);
-
--- Add foreign key constraint for users.role
-ALTER TABLE users ADD CONSTRAINT fk_users_role 
-    FOREIGN KEY (role) REFERENCES roles(role_id) ON DELETE SET NULL;
-
-ALTER TABLE users ADD CONSTRAINT fk_users_created_by 
-    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL;
-
-ALTER TABLE users ADD CONSTRAINT fk_users_updated_by 
-    FOREIGN KEY (updated_by) REFERENCES users(user_id) ON DELETE SET NULL;
-
-ALTER TABLE users ADD CONSTRAINT fk_users_deleted_by 
-    FOREIGN KEY (deleted_by) REFERENCES users(user_id) ON DELETE SET NULL;
-
--- Permissions Table
-CREATE TABLE permissions (
-    permission_id SERIAL PRIMARY KEY,
-    permission_key VARCHAR(100) UNIQUE NOT NULL,
-    permission_name VARCHAR(200) NOT NULL,
-    module VARCHAR(50) NOT NULL,
-    description TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_permissions_key ON permissions(permission_key);
-CREATE INDEX idx_permissions_module ON permissions(module);
-CREATE INDEX idx_permissions_active ON permissions(is_active);
-
--- Role Permissions Table (Many-to-Many)
-CREATE TABLE role_permissions (
-    id SERIAL PRIMARY KEY,
-    role_id INTEGER NOT NULL,
-    permission_id INTEGER NOT NULL,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (role_id) REFERENCES roles(role_id) ON DELETE CASCADE,
-    FOREIGN KEY (permission_id) REFERENCES permissions(permission_id) ON DELETE CASCADE,
-    UNIQUE(role_id, permission_id)
-);
-
-CREATE INDEX idx_role_permissions_role ON role_permissions(role_id);
-CREATE INDEX idx_role_permissions_permission ON role_permissions(permission_id);
-
--- Refresh Tokens Table
 CREATE TABLE refresh_tokens (
-    token_id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    token_hash TEXT NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
-    is_revoked BOOLEAN DEFAULT FALSE,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
+  token_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  token_hash TEXT NOT NULL,
+  expires_at DATETIME NOT NULL,
+  is_revoked TINYINT(1) NOT NULL DEFAULT 0,
+  ip_address VARCHAR(45) NULL,
+  user_agent TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_refresh_tokens_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_refresh_tokens_user_id (user_id),
+  INDEX idx_refresh_tokens_expires_at (expires_at),
+  INDEX idx_refresh_tokens_is_revoked (is_revoked)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
-CREATE INDEX idx_refresh_tokens_expires ON refresh_tokens(expires_at);
-CREATE INDEX idx_refresh_tokens_revoked ON refresh_tokens(is_revoked);
-
--- OTPs Table
 CREATE TABLE otps (
-    otp_id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL,
-    otp_hash VARCHAR(255) NOT NULL,
-    purpose VARCHAR(50) NOT NULL CHECK (purpose IN ('REGISTRATION', 'PASSWORD_RESET', 'EMAIL_VERIFICATION', 'OTHER')),
-    expires_at TIMESTAMP NOT NULL,
-    attempts INTEGER DEFAULT 0,
-    is_used BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
+  otp_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  otp_hash VARCHAR(255) NOT NULL,
+  purpose ENUM('REGISTRATION','PASSWORD_RESET','EMAIL_VERIFICATION','OTHER') NOT NULL DEFAULT 'REGISTRATION',
+  expires_at DATETIME NOT NULL,
+  attempts INT NOT NULL DEFAULT 0,
+  is_used TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_otps_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_otps_user_id (user_id),
+  INDEX idx_otps_expires_at (expires_at),
+  INDEX idx_otps_is_used (is_used)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_otps_user ON otps(user_id);
-CREATE INDEX idx_otps_expires ON otps(expires_at);
-CREATE INDEX idx_otps_used ON otps(is_used);
+CREATE TABLE properties (
+  property_id INT AUTO_INCREMENT PRIMARY KEY,
+  owner_id INT NOT NULL,
+  name VARCHAR(200) NOT NULL,
+  type ENUM('house','flat','shop','land') NOT NULL,
+  address_line VARCHAR(500) NOT NULL,
+  city VARCHAR(100) NOT NULL,
+  state VARCHAR(100) NOT NULL,
+  pincode VARCHAR(10) NOT NULL,
+  rent_amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+  deposit_amount DECIMAL(12,2) NULL DEFAULT 0,
+  description TEXT NULL,
+  photos JSON NULL,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_properties_owner FOREIGN KEY (owner_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_properties_owner_id (owner_id),
+  INDEX idx_properties_type (type),
+  INDEX idx_properties_city (city),
+  INDEX idx_properties_pincode (pincode),
+  INDEX idx_properties_is_active (is_active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Approval Requests Table
-CREATE TABLE approval_requests (
-    request_id SERIAL PRIMARY KEY,
-    requested_by INTEGER NOT NULL,
-    request_type VARCHAR(50) NOT NULL CHECK (request_type IN (
-        'USER_CREATE', 'USER_UPDATE', 'USER_DELETE', 'USER_ROLE_CHANGE',
-        'ROLE_CREATE', 'ROLE_UPDATE', 'ROLE_DELETE',
-        'PERMISSION_ASSIGN', 'PERMISSION_REMOVE', 'OTHER'
-    )),
-    target_entity VARCHAR(100) NOT NULL,
-    target_id INTEGER,
-    old_values JSONB,
-    new_values JSONB NOT NULL,
-    status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
-    approved_by INTEGER,
-    approval_note TEXT,
-    approved_at TIMESTAMP,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (requested_by) REFERENCES users(user_id) ON DELETE CASCADE,
-    FOREIGN KEY (approved_by) REFERENCES users(user_id) ON DELETE SET NULL
-);
+CREATE TABLE invites (
+  invite_id INT AUTO_INCREMENT PRIMARY KEY,
+  token VARCHAR(500) NOT NULL UNIQUE,
+  property_id INT NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  invited_by INT NOT NULL,
+  used_by INT NULL,
+  status ENUM('pending','used','expired','revoked') NOT NULL DEFAULT 'pending',
+  expires_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_invites_property FOREIGN KEY (property_id) REFERENCES properties(property_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_invites_invited_by FOREIGN KEY (invited_by) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_invites_used_by FOREIGN KEY (used_by) REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_invites_property_id (property_id),
+  INDEX idx_invites_email (email),
+  INDEX idx_invites_status (status),
+  INDEX idx_invites_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_approval_requests_requester ON approval_requests(requested_by);
-CREATE INDEX idx_approval_requests_status ON approval_requests(status);
-CREATE INDEX idx_approval_requests_type ON approval_requests(request_type);
-CREATE INDEX idx_approval_requests_target ON approval_requests(target_entity, target_id);
+CREATE TABLE agreements (
+  agreement_id INT AUTO_INCREMENT PRIMARY KEY,
+  property_id INT NOT NULL,
+  owner_id INT NOT NULL,
+  tenant_id INT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  rent_amount DECIMAL(12,2) NOT NULL,
+  deposit_amount DECIMAL(12,2) NULL DEFAULT 0,
+  rent_due_day INT NOT NULL DEFAULT 1,
+  gst_rate DECIMAL(5,2) NULL DEFAULT 0,
+  status ENUM('draft','active','expired','revoked') NOT NULL DEFAULT 'draft',
+  terms JSON NULL,
+  pdf_url VARCHAR(500) NULL,
+  revoked_at DATETIME NULL,
+  revoke_reason TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_agreements_property FOREIGN KEY (property_id) REFERENCES properties(property_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_agreements_owner FOREIGN KEY (owner_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_agreements_tenant FOREIGN KEY (tenant_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_agreements_property_id (property_id),
+  INDEX idx_agreements_owner_id (owner_id),
+  INDEX idx_agreements_tenant_id (tenant_id),
+  INDEX idx_agreements_status (status),
+  INDEX idx_agreements_start_date (start_date),
+  INDEX idx_agreements_end_date (end_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Action Logs Table
+CREATE TABLE transactions (
+  transaction_id INT AUTO_INCREMENT PRIMARY KEY,
+  agreement_id INT NOT NULL,
+  paid_by INT NOT NULL,
+  type ENUM('rent','deposit','expense','refund') NOT NULL,
+  amount DECIMAL(12,2) NOT NULL,
+  gst_amount DECIMAL(12,2) NULL DEFAULT 0,
+  razorpay_order_id VARCHAR(255) NULL,
+  razorpay_payment_id VARCHAR(255) NULL,
+  razorpay_signature VARCHAR(500) NULL,
+  status ENUM('pending','completed','failed','refunded') NOT NULL DEFAULT 'pending',
+  due_date DATE NULL,
+  paid_at DATETIME NULL,
+  description VARCHAR(500) NULL,
+  hash VARCHAR(64) NULL,
+  previous_hash VARCHAR(64) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_transactions_agreement FOREIGN KEY (agreement_id) REFERENCES agreements(agreement_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_transactions_paid_by FOREIGN KEY (paid_by) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_transactions_agreement_id (agreement_id),
+  INDEX idx_transactions_paid_by (paid_by),
+  INDEX idx_transactions_type (type),
+  INDEX idx_transactions_status (status),
+  INDEX idx_transactions_due_date (due_date),
+  INDEX idx_transactions_razorpay_order_id (razorpay_order_id),
+  INDEX idx_transactions_razorpay_payment_id (razorpay_payment_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE chats (
+  chat_id INT AUTO_INCREMENT PRIMARY KEY,
+  agreement_id INT NOT NULL,
+  sender_id INT NOT NULL,
+  message TEXT NULL,
+  image_url VARCHAR(500) NULL,
+  read_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_chats_agreement FOREIGN KEY (agreement_id) REFERENCES agreements(agreement_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_chats_sender FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_chats_agreement_id (agreement_id),
+  INDEX idx_chats_sender_id (sender_id),
+  INDEX idx_chats_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE notifications (
+  notification_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  type ENUM('due','chat','expiry','invite','payment','system') NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  message TEXT NOT NULL,
+  metadata JSON NULL,
+  read_at DATETIME NULL,
+  sent_via ENUM('inapp','email','both') NOT NULL DEFAULT 'inapp',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_notifications_user_id (user_id),
+  INDEX idx_notifications_type (type),
+  INDEX idx_notifications_read_at (read_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE action_logs (
-    log_id BIGSERIAL PRIMARY KEY,
-    user_id INTEGER,
-    action_type VARCHAR(100) NOT NULL,
-    module VARCHAR(50) NOT NULL,
-    entity_type VARCHAR(100),
-    entity_id INTEGER,
-    request_method VARCHAR(10) NOT NULL,
-    request_path VARCHAR(500) NOT NULL,
-    request_body JSONB,
-    request_query JSONB,
-    response_status INTEGER,
-    response_message TEXT,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    execution_time_ms INTEGER,
-    error_message TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
-);
+  log_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NULL,
+  action_type VARCHAR(100) NOT NULL,
+  module VARCHAR(50) NOT NULL,
+  entity_type VARCHAR(100) NULL,
+  entity_id INT NULL,
+  request_method VARCHAR(10) NOT NULL,
+  request_path VARCHAR(500) NOT NULL,
+  request_body JSON NULL,
+  request_query JSON NULL,
+  response_status INT NULL,
+  response_message TEXT NULL,
+  ip_address VARCHAR(45) NULL,
+  user_agent TEXT NULL,
+  execution_time_ms INT NULL,
+  error_message TEXT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_action_logs_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL ON UPDATE CASCADE,
+  INDEX idx_action_logs_user_id (user_id),
+  INDEX idx_action_logs_module (module),
+  INDEX idx_action_logs_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_action_logs_user ON action_logs(user_id);
-CREATE INDEX idx_action_logs_action ON action_logs(action_type);
-CREATE INDEX idx_action_logs_module ON action_logs(module);
-CREATE INDEX idx_action_logs_created ON action_logs(created_at);
-CREATE INDEX idx_action_logs_method ON action_logs(request_method);
-CREATE INDEX idx_action_logs_status ON action_logs(response_status);
-
--- Audit Logs Table
 CREATE TABLE audit_logs (
-    audit_id SERIAL PRIMARY KEY,
-    user_id INTEGER,
-    action VARCHAR(100) NOT NULL,
-    entity_type VARCHAR(100),
-    entity_id INTEGER,
-    changes JSONB,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE SET NULL
-);
+  audit_log_id INT AUTO_INCREMENT PRIMARY KEY,
+  action VARCHAR(100) NOT NULL,
+  actor_id INT NULL,
+  actor_type VARCHAR(50) NULL,
+  resource VARCHAR(255) NOT NULL,
+  method VARCHAR(10) NOT NULL,
+  status_code INT NOT NULL,
+  ip_address VARCHAR(45) NULL,
+  user_agent TEXT NULL,
+  request_body TEXT NULL,
+  response_body TEXT NULL,
+  correlation_id VARCHAR(36) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_audit_logs_action (action),
+  INDEX idx_audit_logs_actor_id (actor_id),
+  INDEX idx_audit_logs_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
-CREATE INDEX idx_audit_logs_action ON audit_logs(action);
-CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
-CREATE INDEX idx_audit_logs_created ON audit_logs(created_at);
+INSERT INTO users (user_id, email, password_hash, full_name, phone, role, tier, is_active, email_verified, refresh_token_version, created_at, updated_at)
+VALUES
+  (1, 'owner@beaver.rent', '$2b$12$placeholder.owner.hash', 'Demo Owner', '9876543210', 'owner', 'pro', 1, 1, 0, NOW(), NOW()),
+  (2, 'tenant@beaver.rent', '$2b$12$placeholder.tenant.hash', 'Demo Tenant', '9123456780', 'tenant', 'free', 1, 1, 0, NOW(), NOW());
 
--- Insert Initial Permissions
-INSERT INTO permissions (permission_key, permission_name, module, description, is_active) VALUES
-('users.view', 'View Users', 'users', 'View user list and details', true),
-('users.create', 'Create Users', 'users', 'Create new users', true),
-('users.update', 'Update Users', 'users', 'Update user information', true),
-('users.delete', 'Delete Users', 'users', 'Delete users (soft delete)', true),
-('users.activate', 'Activate Users', 'users', 'Activate user accounts', true),
-('users.deactivate', 'Deactivate Users', 'users', 'Deactivate user accounts', true),
-('users.export', 'Export Users', 'users', 'Export user data to Excel/PDF', true),
-('users.schedule_deactivation', 'Schedule User Deactivation', 'users', 'Schedule automatic user deactivation', true),
-('roles.view', 'View Roles', 'roles', 'View role list and details', true),
-('roles.create', 'Create Roles', 'roles', 'Create custom roles', true),
-('roles.update', 'Update Roles', 'roles', 'Update role information', true),
-('roles.delete', 'Delete Roles', 'roles', 'Delete custom roles', true),
-('roles.assign', 'Assign Roles', 'roles', 'Assign roles to users', true),
-('permissions.view', 'View Permissions', 'permissions', 'View all available permissions', true),
-('permissions.assign', 'Assign Permissions', 'permissions', 'Assign permissions to roles', true),
-('permissions.remove', 'Remove Permissions', 'permissions', 'Remove permissions from roles', true),
-('approval.view', 'View Approvals', 'approval', 'View pending approval requests', true),
-('approval.allow', 'Bypass Approval', 'approval', 'Bypass approval workflow for actions', true),
-('approval.approve', 'Approve Requests', 'approval', 'Approve pending requests', true),
-('approval.reject', 'Reject Requests', 'approval', 'Reject pending requests', true),
-('audit.view', 'View Audit Logs', 'audit', 'View audit log entries', true),
-('audit.export', 'Export Audit Logs', 'audit', 'Export audit logs', true),
-('action_logs.view', 'View Action Logs', 'action_logs', 'View action log entries', true),
-('action_logs.export', 'Export Action Logs', 'action_logs', 'Export action logs', true),
-('settings.view', 'View Settings', 'settings', 'View system settings', true),
-('settings.update', 'Update Settings', 'settings', 'Update system settings', true),
-('reports.view', 'View Reports', 'reports', 'View system reports', true),
-('reports.create', 'Create Reports', 'reports', 'Create custom reports', true),
-('reports.export', 'Export Reports', 'reports', 'Export reports to Excel/PDF', true);
+INSERT INTO properties (property_id, owner_id, name, type, address_line, city, state, pincode, rent_amount, deposit_amount, description, photos, is_active, created_at, updated_at)
+VALUES
+  (1, 1, 'Green Residency Flat 302', 'flat', 'MG Road, Pune', 'Pune', 'Maharashtra', '411001', 25000.00, 50000.00, 'Furnished 2BHK flat', JSON_ARRAY(), 1, NOW(), NOW());
 
--- Insert System Roles
-INSERT INTO roles (role_name, description, is_system_role, is_active) VALUES
-('SUPER_ADMIN', 'Super Administrator with full system access', true, true),
-('ADMIN', 'Administrator with management access', true, true),
-('MANAGER', 'Manager with limited administrative access', true, true),
-('USER', 'Standard user with basic access', true, true);
+INSERT INTO invites (invite_id, token, property_id, email, invited_by, used_by, status, expires_at, created_at, updated_at)
+VALUES
+  (1, 'demo-invite-token-beaver', 1, 'tenant@beaver.rent', 1, 2, 'used', DATE_ADD(NOW(), INTERVAL 7 DAY), NOW(), NOW());
 
--- Assign All Permissions to SUPER_ADMIN
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.role_id, p.permission_id
-FROM roles r
-CROSS JOIN permissions p
-WHERE r.role_name = 'SUPER_ADMIN';
+INSERT INTO agreements (agreement_id, property_id, owner_id, tenant_id, start_date, end_date, rent_amount, deposit_amount, rent_due_day, gst_rate, status, terms, pdf_url, revoked_at, revoke_reason, created_at, updated_at)
+VALUES
+  (1, 1, 1, 2, '2026-03-01', '2027-02-28', 25000.00, 50000.00, 5, 18.00, 'active', JSON_OBJECT('template', 'rera-basic', 'noticePeriodDays', 30), NULL, NULL, NULL, NOW(), NOW());
 
--- Assign Permissions to ADMIN
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.role_id, p.permission_id
-FROM roles r
-JOIN permissions p ON p.permission_key IN (
-    'users.view', 'users.create', 'users.update', 'users.activate', 'users.deactivate', 
-    'users.export', 'users.schedule_deactivation',
-    'roles.view', 'roles.create', 'roles.update', 'roles.assign',
-    'permissions.view', 'permissions.assign', 'permissions.remove',
-    'approval.view', 'approval.allow', 'approval.approve', 'approval.reject',
-    'audit.view', 'audit.export', 'action_logs.view',
-    'settings.view', 'settings.update',
-    'reports.view', 'reports.create', 'reports.export'
-)
-WHERE r.role_name = 'ADMIN';
+INSERT INTO transactions (transaction_id, agreement_id, paid_by, type, amount, gst_amount, razorpay_order_id, razorpay_payment_id, razorpay_signature, status, due_date, paid_at, description, hash, previous_hash, created_at, updated_at)
+VALUES
+  (1, 1, 2, 'rent', 25000.00, 4500.00, 'order_demo_001', 'pay_demo_001', 'sig_demo_001', 'completed', '2026-03-05', NOW(), 'March rent payment', 'demo_hash_001', NULL, NOW(), NOW());
 
--- Assign Permissions to MANAGER
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.role_id, p.permission_id
-FROM roles r
-JOIN permissions p ON p.permission_key IN (
-    'users.view', 'users.export',
-    'roles.view', 'permissions.view', 'approval.view',
-    'reports.view', 'reports.create', 'reports.export'
-)
-WHERE r.role_name = 'MANAGER';
+INSERT INTO chats (chat_id, agreement_id, sender_id, message, image_url, read_at, created_at, updated_at)
+VALUES
+  (1, 1, 2, 'Hi, I have completed the rent payment.', NULL, NULL, NOW(), NOW());
 
--- Assign Permissions to USER
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.role_id, p.permission_id
-FROM roles r
-JOIN permissions p ON p.permission_key IN ('users.view')
-WHERE r.role_name = 'USER';
-
--- Create Default Super Admin User (password: Admin@123)
--- Note: Update this password hash after first login
-INSERT INTO users (email, password_hash, full_name, role, is_active, email_verified)
-SELECT 
-    'admin@example.com',
-    '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5GyYIeWEHaSuu',
-    'Super Administrator',
-    role_id,
-    true,
-    true
-FROM roles WHERE role_name = 'SUPER_ADMIN';
-
--- Comments
-COMMENT ON TABLE users IS 'User accounts with authentication and profile information';
-COMMENT ON TABLE roles IS 'Dynamic role definitions for RBAC';
-COMMENT ON TABLE permissions IS 'All available system permissions';
-COMMENT ON TABLE role_permissions IS 'Many-to-many relationship between roles and permissions';
-COMMENT ON TABLE refresh_tokens IS 'JWT refresh tokens for authentication';
-COMMENT ON TABLE approval_requests IS 'Pending approval requests for restricted actions';
-COMMENT ON TABLE action_logs IS 'Comprehensive logging of all API actions';
-COMMENT ON TABLE audit_logs IS 'Audit trail for sensitive operations';
+SET FOREIGN_KEY_CHECKS = 1;

@@ -6,6 +6,204 @@ const { authenticateToken } = require('../../../middleware/auth');
 const { loginRateLimiter } = require('../../../config/rateLimiters');
 const authValidators = require('../validators/authValidators');
 
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Register a new owner or tenant
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, full_name]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *               full_name:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [owner, tenant]
+ *     responses:
+ *       201:
+ *         description: Registration successful
+ *
+ * /auth/verify-otp:
+ *   post:
+ *     summary: Verify signup OTP and activate account
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, otp]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Email verified successfully
+ *
+ * /auth/resend-otp:
+ *   post:
+ *     summary: Resend account verification OTP
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: OTP resent
+ *
+ * /auth/login:
+ *   post:
+ *     summary: Login and receive access/refresh tokens
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *
+ * /auth/refresh:
+ *   post:
+ *     summary: Rotate refresh token and get a new access token
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refreshed
+ *
+ * /auth/logout:
+ *   post:
+ *     summary: Logout and revoke refresh token
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [refreshToken]
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Request password reset OTP
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Reset OTP issued
+ *
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password using OTP while logged out
+ *     tags: [Auth]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, otp, new_password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               otp:
+ *                 type: string
+ *               new_password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *
+ * /auth/change-password:
+ *   post:
+ *     summary: Change password while logged in
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [current_password, new_password]
+ *             properties:
+ *               current_password:
+ *                 type: string
+ *               new_password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password changed successfully
+ */
+
 // Authentication Module Routes
 // Base path: /api/auth
 // Public routes (no authentication required unless specified)

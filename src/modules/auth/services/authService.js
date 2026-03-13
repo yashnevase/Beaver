@@ -3,10 +3,22 @@ const db = require('../../../models');
 const { tokenService, otpService } = require('../../../lib/auth');
 const emailService = require('../../../lib/email');
 const { ApiError } = require('../../../middleware/errorHandler');
+const { getRolePermissions } = require('../../../constants/roles');
 const logger = require('../../../config/logger');
 
+const buildTokenPayload = (user) => ({
+  user_id: user.user_id,
+  email: user.email,
+  role: user.role,
+  tier: user.tier,
+  permissions: getRolePermissions(user.role)
+});
+
 const register = async (userData, ipAddress, userAgent) => {
-  const { email, password, full_name } = userData;
+  const { email, password, full_name, phone, role } = userData;
+  
+  const validRoles = ['owner', 'tenant'];
+  const userRole = validRoles.includes(role) ? role : 'tenant';
   
   const existingUser = await db.User.findOne({ where: { email } });
   if (existingUser) {
@@ -16,13 +28,13 @@ const register = async (userData, ipAddress, userAgent) => {
   const bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
   const passwordHash = await bcrypt.hash(password, bcryptRounds);
   
-  const defaultRole = await db.Role.findOne({ where: { role_name: 'USER' } });
-  
   const user = await db.User.create({
     email,
     password_hash: passwordHash,
     full_name,
-    role: defaultRole ? defaultRole.role_id : null,
+    phone: phone || null,
+    role: userRole,
+    tier: 'free',
     is_active: false,
     email_verified: false
   });
@@ -33,7 +45,7 @@ const register = async (userData, ipAddress, userAgent) => {
   const expiryMinutes = parseInt(process.env.OTP_EXPIRY_MINUTES) || 5;
   const emailResult = await emailService.sendOTPEmail(user, otp, expiryMinutes);
   
-  logger.info(`User registered: ${email}, OTP sent`);
+  logger.info(`User registered: ${email} as ${userRole}, OTP sent`);
   
   const response = {
     message: 'Registration successful. Please verify your email with the OTP sent.',
@@ -67,22 +79,7 @@ const verifyOTP = async (email, otp, ipAddress, userAgent) => {
     is_active: true
   });
   
-  const roleData = await db.Role.findByPk(user.role, {
-    include: [{
-      model: db.Permission,
-      as: 'permissions',
-      attributes: ['permission_key']
-    }]
-  });
-  
-  const permissions = roleData ? roleData.permissions.map(p => p.permission_key) : [];
-  
-  const tokenPayload = {
-    user_id: user.user_id,
-    email: user.email,
-    role: roleData ? roleData.role_name : 'USER',
-    permissions
-  };
+  const tokenPayload = buildTokenPayload(user);
   
   const accessToken = tokenService.generateAccessToken(tokenPayload);
   const refreshToken = tokenService.generateRefreshToken({ user_id: user.user_id });
@@ -157,22 +154,7 @@ const login = async (email, password, ipAddress, userAgent) => {
   
   await user.update({ last_login_at: new Date() });
   
-  const roleData = await db.Role.findByPk(user.role, {
-    include: [{
-      model: db.Permission,
-      as: 'permissions',
-      attributes: ['permission_key']
-    }]
-  });
-  
-  const permissions = roleData ? roleData.permissions.map(p => p.permission_key) : [];
-  
-  const tokenPayload = {
-    user_id: user.user_id,
-    email: user.email,
-    role: roleData ? roleData.role_name : 'USER',
-    permissions
-  };
+  const tokenPayload = buildTokenPayload(user);
   
   const accessToken = tokenService.generateAccessToken(tokenPayload);
   const refreshToken = tokenService.generateRefreshToken({ user_id: user.user_id });
@@ -207,22 +189,7 @@ const refreshAccessToken = async (refreshToken, ipAddress, userAgent) => {
     throw ApiError.unauthorized('User not found or inactive');
   }
   
-  const roleData = await db.Role.findByPk(user.role, {
-    include: [{
-      model: db.Permission,
-      as: 'permissions',
-      attributes: ['permission_key']
-    }]
-  });
-  
-  const permissions = roleData ? roleData.permissions.map(p => p.permission_key) : [];
-  
-  const tokenPayload = {
-    user_id: user.user_id,
-    email: user.email,
-    role: roleData ? roleData.role_name : 'USER',
-    permissions
-  };
+  const tokenPayload = buildTokenPayload(user);
   
   const newAccessToken = tokenService.generateAccessToken(tokenPayload);
   const newRefreshToken = tokenService.generateRefreshToken({ user_id: user.user_id });

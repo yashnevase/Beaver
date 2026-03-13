@@ -5,26 +5,18 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Production Backend API',
+      title: 'Beaver Rental API',
       version: '1.0.0',
-      description: 'Enterprise-grade Express.js backend with RBAC, security, and scalability built-in',
+      description: 'India-specific rental SaaS backend for owner-tenant property management',
       contact: {
-        name: 'API Support',
-        email: 'support@yourcompany.com'
-      },
-      license: {
-        name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT'
+        name: 'Beaver API Support',
+        email: 'support@beaver.rent'
       }
     },
     servers: [
       {
-        url: 'http://localhost:3001',
-        description: 'Development server'
-      },
-      {
-        url: 'https://api.yourcompany.com',
-        description: 'Production server'
+        url: 'http://localhost:3001/api/v1',
+        description: 'Local development'
       }
     ],
     components: {
@@ -32,289 +24,83 @@ const options = {
         bearerAuth: {
           type: 'http',
           scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'Enter your JWT token'
+          bearerFormat: 'JWT'
         }
       },
       schemas: {
         User: {
           type: 'object',
           properties: {
-            user_id: {
-              type: 'integer',
-              description: 'User ID',
-              example: 1
-            },
-            email: {
-              type: 'string',
-              format: 'email',
-              description: 'User email address',
-              example: 'user@example.com'
-            },
-            full_name: {
-              type: 'string',
-              description: 'User full name',
-              example: 'John Doe'
-            },
-            role: {
-              type: 'integer',
-              description: 'Role ID',
-              example: 4
-            },
-            userRole: {
-              $ref: '#/components/schemas/Role'
-            },
-            is_active: {
-              type: 'boolean',
-              description: 'Account status',
-              example: true
-            },
-            email_verified: {
-              type: 'boolean',
-              description: 'Email verification status',
-              example: true
-            },
-            last_login_at: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Last login timestamp',
-              nullable: true
-            },
-            scheduled_deactivation_at: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Scheduled deactivation date',
-              nullable: true
-            },
-            profile_photo: {
-              type: 'string',
-              description: 'Profile photo URL',
-              nullable: true
-            },
-            created_at: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Account creation timestamp'
-            },
-            updated_at: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Last update timestamp'
-            }
+            user_id: { type: 'integer', example: 1 },
+            email: { type: 'string', format: 'email', example: 'owner@beaver.rent' },
+            full_name: { type: 'string', example: 'Yash Owner' },
+            phone: { type: 'string', example: '9876543210', nullable: true },
+            role: { type: 'string', enum: ['owner', 'tenant', 'admin'] },
+            tier: { type: 'string', enum: ['free', 'pro'] },
+            is_active: { type: 'boolean', example: true },
+            email_verified: { type: 'boolean', example: true }
           }
         },
-        Role: {
+        Property: {
           type: 'object',
           properties: {
-            role_id: {
-              type: 'integer',
-              description: 'Role ID',
-              example: 1
-            },
-            role_name: {
-              type: 'string',
-              description: 'Role name',
-              example: 'ADMIN'
-            },
-            description: {
-              type: 'string',
-              description: 'Role description',
-              nullable: true
-            },
-            is_system_role: {
-              type: 'boolean',
-              description: 'System role flag',
-              example: true
-            },
-            is_active: {
-              type: 'boolean',
-              description: 'Role status',
-              example: true
-            }
+            property_id: { type: 'integer', example: 1 },
+            owner_id: { type: 'integer', example: 1 },
+            name: { type: 'string', example: 'Green Residency Flat 302' },
+            type: { type: 'string', enum: ['house', 'flat', 'shop', 'land'] },
+            address_line: { type: 'string', example: 'MG Road, Pune' },
+            city: { type: 'string', example: 'Pune' },
+            state: { type: 'string', example: 'Maharashtra' },
+            pincode: { type: 'string', example: '411001' },
+            rent_amount: { type: 'number', example: 25000 },
+            deposit_amount: { type: 'number', example: 50000 }
           }
         },
-        Permission: {
+        Agreement: {
           type: 'object',
           properties: {
-            permission_id: {
-              type: 'integer',
-              description: 'Permission ID',
-              example: 1
-            },
-            permission_key: {
-              type: 'string',
-              description: 'Permission key',
-              example: 'users.view'
-            },
-            permission_name: {
-              type: 'string',
-              description: 'Permission name',
-              example: 'View Users'
-            },
-            module: {
-              type: 'string',
-              description: 'Module name',
-              example: 'users'
-            },
-            description: {
-              type: 'string',
-              description: 'Permission description',
-              nullable: true
-            }
+            agreement_id: { type: 'integer', example: 1 },
+            property_id: { type: 'integer', example: 1 },
+            owner_id: { type: 'integer', example: 1 },
+            tenant_id: { type: 'integer', example: 2 },
+            start_date: { type: 'string', format: 'date' },
+            end_date: { type: 'string', format: 'date' },
+            rent_amount: { type: 'number', example: 25000 },
+            deposit_amount: { type: 'number', example: 50000 },
+            status: { type: 'string', enum: ['draft', 'active', 'expired', 'revoked'] }
           }
         },
-        AuthResponse: {
+        Transaction: {
           type: 'object',
           properties: {
-            success: {
-              type: 'boolean',
-              example: true
-            },
-            message: {
-              type: 'string',
-              example: 'Login successful'
-            },
-            data: {
-              type: 'object',
-              properties: {
-                accessToken: {
-                  type: 'string',
-                  description: 'JWT access token',
-                  example: 'eyJhbGciOiJIUzI1NiIs...'
-                },
-                refreshToken: {
-                  type: 'string',
-                  description: 'JWT refresh token',
-                  example: 'eyJhbGciOiJIUzI1NiIs...'
-                },
-                user: {
-                  $ref: '#/components/schemas/User'
-                }
-              }
-            }
+            transaction_id: { type: 'integer', example: 1 },
+            agreement_id: { type: 'integer', example: 1 },
+            type: { type: 'string', enum: ['rent', 'deposit', 'expense', 'refund'] },
+            amount: { type: 'number', example: 25000 },
+            gst_amount: { type: 'number', example: 4500 },
+            status: { type: 'string', enum: ['pending', 'completed', 'failed', 'refunded'] },
+            razorpay_order_id: { type: 'string', nullable: true },
+            razorpay_payment_id: { type: 'string', nullable: true },
+            hash: { type: 'string', nullable: true }
           }
         },
-        OTPResponse: {
+        Notification: {
           type: 'object',
           properties: {
-            success: {
-              type: 'boolean',
-              example: true
-            },
-            message: {
-              type: 'string',
-              example: 'Registration successful. Please verify your email with the OTP sent.'
-            },
-            data: {
-              type: 'object',
-              properties: {
-                userId: {
-                  type: 'integer',
-                  example: 1
-                },
-                email: {
-                  type: 'string',
-                  format: 'email',
-                  example: 'user@example.com'
-                },
-                otp: {
-                  type: 'string',
-                  description: 'OTP (only in development mode)',
-                  example: '123456'
-                },
-                devMode: {
-                  type: 'boolean',
-                  description: 'Development mode flag',
-                  example: true
-                }
-              }
-            }
+            notification_id: { type: 'integer', example: 1 },
+            user_id: { type: 'integer', example: 2 },
+            type: { type: 'string', enum: ['due', 'chat', 'expiry', 'invite', 'payment', 'system'] },
+            title: { type: 'string', example: 'Rent Due Reminder' },
+            message: { type: 'string', example: 'Your rent is due today.' },
+            read_at: { type: 'string', format: 'date-time', nullable: true }
           }
         },
-        Error: {
+        ApiError: {
           type: 'object',
           properties: {
-            success: {
-              type: 'boolean',
-              example: false
-            },
-            error: {
-              type: 'string',
-              description: 'Error message'
-            },
-            correlationId: {
-              type: 'string',
-              description: 'Request correlation ID'
-            }
-          }
-        },
-        ValidationError: {
-          type: 'object',
-          properties: {
-            success: {
-              type: 'boolean',
-              example: false
-            },
-            error: {
-              type: 'string',
-              example: 'Validation failed'
-            },
-            errors: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  field: {
-                    type: 'string'
-                  },
-                  message: {
-                    type: 'string'
-                  },
-                  type: {
-                    type: 'string'
-                  }
-                }
-              }
-            }
-          }
-        },
-        PaginatedResponse: {
-          type: 'object',
-          properties: {
-            success: {
-              type: 'boolean',
-              example: true
-            },
-            message: {
-              type: 'string'
-            },
-            data: {
-              type: 'array',
-              items: {}
-            },
-            pagination: {
-              type: 'object',
-              properties: {
-                total: {
-                  type: 'integer'
-                },
-                page: {
-                  type: 'integer'
-                },
-                limit: {
-                  type: 'integer'
-                },
-                totalPages: {
-                  type: 'integer'
-                },
-                hasNext: {
-                  type: 'boolean'
-                },
-                hasPrev: {
-                  type: 'boolean'
-                }
-              }
-            }
+            success: { type: 'boolean', example: false },
+            error: { type: 'string', example: 'Validation failed' },
+            correlationId: { type: 'string', example: 'uuid-value' }
           }
         }
       },
@@ -323,9 +109,7 @@ const options = {
           description: 'Authentication required',
           content: {
             'application/json': {
-              schema: {
-                $ref: '#/components/schemas/Error'
-              }
+              schema: { $ref: '#/components/schemas/ApiError' }
             }
           }
         },
@@ -333,9 +117,7 @@ const options = {
           description: 'Insufficient permissions',
           content: {
             'application/json': {
-              schema: {
-                $ref: '#/components/schemas/Error'
-              }
+              schema: { $ref: '#/components/schemas/ApiError' }
             }
           }
         },
@@ -343,36 +125,17 @@ const options = {
           description: 'Resource not found',
           content: {
             'application/json': {
-              schema: {
-                $ref: '#/components/schemas/Error'
-              }
-            }
-          }
-        },
-        ValidationError: {
-          description: 'Validation failed',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/ValidationError'
-              }
+              schema: { $ref: '#/components/schemas/ApiError' }
             }
           }
         }
       }
     },
-    security: [
-      {
-        bearerAuth: []
-      }
-    ]
+    security: [{ bearerAuth: [] }]
   },
   apis: [
     './src/routes/*.js',
-    './src/modules/*/routes/*.js',
-    './src/modules/*/controllers/*.js',
-    './src/modules/*/validators/*.js',
-    './src/models/*.js'
+    './src/modules/*/routes/*.js'
   ]
 };
 
@@ -380,8 +143,7 @@ const specs = swaggerJsdoc(options);
 
 const swaggerOptions = {
   customCss: '.swagger-ui .topbar { display: none }',
-  customSiteTitle: 'Production Backend API Docs',
-  customfavIcon: '/favicon.ico'
+  customSiteTitle: 'Beaver API Docs'
 };
 
 module.exports = {
