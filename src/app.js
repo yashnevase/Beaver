@@ -8,13 +8,13 @@ const cache = require('./utils/cache');
 
 const app = express();
 
-initMiddleware(app);
-
-// Serve uploads as early as possible
+// 1. Core performance & static files (BEFORE complex security logic)
+app.use(compression());
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-// Serve static frontend files from 'public' directory
 app.use(express.static(path.join(__dirname, '../public')));
+
+// 2. Initialize security and other middleware
+initMiddleware(app);
 
 if (process.env.ENABLE_ACTION_LOGGING !== 'false') {
   const actionLogger = require('./middleware/actionLogger');
@@ -107,16 +107,10 @@ app.get('/health/detailed', async (req, res) => {
 // API Routes
 app.use('/api/v1', require('./routes'));
 
-// Catch-all route for SPA (React)
+// 5. Catch-all route for SPA (React)
 app.get('*', (req, res, next) => {
-  // If request contains /api/v1, it's a missing API route
-  if (req.path.startsWith('/api/v1')) {
-    return next();
-  }
-  
-  // If request looks like a file (has an extension) but reached here, it's a 404 for an asset
-  // We should NOT serve index.html for missing assets
-  if (req.path.match(/\.(css|js|png|jpg|jpeg|svg|ico|json|map)$/)) {
+  // Never serve index.html for API or static asset requests
+  if (req.path.startsWith('/api/v1') || req.path.match(/\.(css|js|png|jpg|jpeg|svg|ico|json|map|woff2?)$/)) {
     return next();
   }
 

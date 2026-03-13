@@ -65,24 +65,25 @@ const buildHelmetConfig = (nonce) => helmet({
       defaultSrc: ["'self'"],
       scriptSrc: [
         "'self'",
-        nonce ? `'nonce-${nonce}'` : null
-      ].filter(Boolean),
-      scriptSrcElem: [
-        "'self'",
+        "'unsafe-inline'",
+        "'unsafe-eval'",
+        "https://checkout.razorpay.com",
+        "https://api.razorpay.com",
         nonce ? `'nonce-${nonce}'` : null
       ].filter(Boolean),
       styleSrc: [
         "'self'",
-        nonce ? `'nonce-${nonce}'` : null,
-        "https://fonts.googleapis.com"
-      ].filter(Boolean),
-      imgSrc: ["'self'", "data:", "blob:", "https:"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      connectSrc: ["'self'"],
+        "'unsafe-inline'",
+        "https://fonts.googleapis.com",
+        "https://checkout.razorpay.com"
+      ],
+      imgSrc: ["'self'", "data:", "blob:", "https:", "https://*.razorpay.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+      connectSrc: ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
+      frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
-      formAction: ["'self'"],
-      frameAncestors: ["'self'"]
+      upgradeInsecureRequests: []
     }
   } : false
 });

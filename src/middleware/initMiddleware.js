@@ -12,11 +12,11 @@ const getAllowedOrigins = () => {
   const origins = [];
   
   if (process.env.FRONTEND_URL) {
-    origins.push(process.env.FRONTEND_URL);
+    origins.push(process.env.FRONTEND_URL.replace(/\/$/, ''));
   }
   
   if (process.env.ALLOWED_ORIGINS) {
-    origins.push(...process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()));
+    origins.push(...process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim().replace(/\/$/, '')));
   }
   
   if (process.env.NODE_ENV === 'development') {
@@ -28,8 +28,6 @@ const getAllowedOrigins = () => {
 
 const initMiddleware = (app) => {
   app.use(cookieParser());
-  
-  app.use(compression());
   
   app.use((req, res, next) => {
     res.locals.cspNonce = crypto.randomBytes(16).toString('base64');
@@ -47,12 +45,17 @@ const initMiddleware = (app) => {
     
     app.use(cors({
       origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
         if (!origin) return callback(null, true);
         
+        const originClean = origin.replace(/\/$/, '');
+        const allowed = getAllowedOrigins();
+
         if (process.env.NODE_ENV === 'production') {
-          if (!allowedOrigins.includes(origin)) {
-            logger.warn(`CORS blocked: ${origin}`);
-            return callback(new Error('Not allowed by CORS'), false);
+          if (allowed.length > 0 && !allowed.includes(originClean)) {
+            logger.warn(`CORS blocked: ${originClean}`);
+            // Don't throw 500, just fail CORS
+            return callback(null, false);
           }
         }
         
