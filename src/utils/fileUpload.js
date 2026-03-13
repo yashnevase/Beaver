@@ -94,7 +94,9 @@ const deleteFile = (filePath) => {
 };
 
 const getFileUrl = (filePath) => {
-  const baseUrl = process.env.BASE_URL || 'http://localhost:3001';
+  let baseUrl = process.env.BASE_URL || 'http://localhost:3001';
+  // Remove trailing slash if exists to avoid double slashes in output
+  baseUrl = baseUrl.replace(/\/$/, '');
   return `${baseUrl}/${filePath.replace(/\\/g, '/')}`;
 };
 

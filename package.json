@@ -4,7 +4,7 @@
   "description": "Beaver - India-specific rental property management SaaS backend",
   "main": "src/server.js",
   "scripts": {
-    "start": "npx sequelize-cli db:migrate && node fix-sequences.js && node src/server.js",
+    "start": "npx sequelize-cli db:migrate && node fix-sequences.js && node rename-blocked-files.js && node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
