@@ -1,33 +1,20 @@
 const { Sequelize } = require('sequelize');
 const logger = require('./logger');
 
-const sequelize = new Sequelize(
-  process.env.DB_NAME || 'beaver_dev',
-  process.env.DB_USER || 'root',
-  process.env.DB_PASSWORD || '',
-  {
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT) || 5432,
-    dialect: process.env.DB_DIALECT || 'mysql',
+const sequelize = process.env.DATABASE_URL 
+  ? new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
     logging: (sql, timing) => {
       if (process.env.ENABLE_SLOW_QUERY_LOG === 'true' && timing > 500) {
         logger.warn(`Slow query (${timing}ms): ${sql.substring(0, 200)}`);
       }
     },
     benchmark: true,
-    pool: {
-      max: process.env.NODE_ENV === 'production' ? 50 : 10,
-      min: process.env.NODE_ENV === 'production' ? 5 : 0,
-      acquire: 30000,
-      idle: 10000,
-      evict: 1000
-    },
     dialectOptions: {
       ssl: process.env.DB_SSL === 'true' ? {
         require: true,
         rejectUnauthorized: false
       } : false,
-      // Force IPv4 to prevent ENETUNREACH on environments with limited IPv6 support
       family: 4
     },
     define: {
@@ -35,8 +22,42 @@ const sequelize = new Sequelize(
       underscored: true,
       freezeTableName: true
     }
-  }
-);
+  })
+  : new Sequelize(
+    process.env.DB_NAME || 'beaver_dev',
+    process.env.DB_USER || 'root',
+    process.env.DB_PASSWORD || '',
+    {
+      host: process.env.DB_HOST || 'localhost',
+      port: parseInt(process.env.DB_PORT) || 5432,
+      dialect: process.env.DB_DIALECT || 'mysql',
+      logging: (sql, timing) => {
+        if (process.env.ENABLE_SLOW_QUERY_LOG === 'true' && timing > 500) {
+          logger.warn(`Slow query (${timing}ms): ${sql.substring(0, 200)}`);
+        }
+      },
+      benchmark: true,
+      pool: {
+        max: process.env.NODE_ENV === 'production' ? 50 : 10,
+        min: process.env.NODE_ENV === 'production' ? 5 : 0,
+        acquire: 30000,
+        idle: 10000,
+        evict: 1000
+      },
+      dialectOptions: {
+        ssl: process.env.DB_SSL === 'true' ? {
+          require: true,
+          rejectUnauthorized: false
+        } : false,
+        family: 4
+      },
+      define: {
+        timestamps: true,
+        underscored: true,
+        freezeTableName: true
+      }
+    }
+  );
 
 const testConnection = async () => {
   try {
