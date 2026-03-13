@@ -107,7 +107,13 @@ const initMiddleware = (app) => {
   
   if (ENABLE_RATE_LIMIT) {
     app.use((req, res, next) => {
-      if (req.path === '/health' || req.path.startsWith('/uploads')) {
+      // Skip rate limiting for health checks and static assets
+      if (
+        req.path === '/health' || 
+        req.path.startsWith('/uploads') || 
+        req.path.startsWith('/assets') ||
+        req.path.match(/\.(css|js|png|jpg|jpeg|svg|ico|json|woff2?|map)$/)
+      ) {
         return next();
       }
       return apiRateLimiter(req, res, next);

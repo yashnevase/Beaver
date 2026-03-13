@@ -10,6 +10,12 @@ const app = express();
 
 initMiddleware(app);
 
+// Serve uploads as early as possible
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Serve static frontend files from 'public' directory
+app.use(express.static(path.join(__dirname, '../public')));
+
 if (process.env.ENABLE_ACTION_LOGGING !== 'false') {
   const actionLogger = require('./middleware/actionLogger');
   app.use(actionLogger);
@@ -25,6 +31,7 @@ if (process.env.ENABLE_SWAGGER !== 'false') {
   logger.info('Swagger documentation available at /api-docs');
 }
 
+// Health routes
 app.get('/health', async (req, res) => {
   res.json({
     status: 'ok',
@@ -97,24 +104,24 @@ app.get('/health/detailed', async (req, res) => {
   });
 });
 
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-// Serve static frontend files from 'public' directory
-app.use(express.static(path.join(__dirname, '../public')));
-
 // API Routes
 app.use('/api/v1', require('./routes'));
 
 // Catch-all route for SPA (React)
-// This will serve index.html for any request that doesn't match an API route or static file
 app.get('*', (req, res, next) => {
-  // If request contains /api/v1, it's a missing API route, let notFoundHandler handle it
+  // If request contains /api/v1, it's a missing API route
   if (req.path.startsWith('/api/v1')) {
     return next();
   }
+  
+  // If request looks like a file (has an extension) but reached here, it's a 404 for an asset
+  // We should NOT serve index.html for missing assets
+  if (req.path.match(/\.(css|js|png|jpg|jpeg|svg|ico|json|map)$/)) {
+    return next();
+  }
+
   res.sendFile(path.join(__dirname, '../public', 'index.html'), (err) => {
     if (err) {
-      // If index.html is missing (e.g. before first build), fall through to notFoundHandler
       next();
     }
   });
