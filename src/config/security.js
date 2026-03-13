@@ -67,20 +67,19 @@ const buildHelmetConfig = (nonce) => helmet({
         "'self'",
         "'unsafe-inline'",
         "'unsafe-eval'",
-        "https://checkout.razorpay.com",
-        "https://api.razorpay.com",
+        "https://*.razorpay.com",
         nonce ? `'nonce-${nonce}'` : null
       ].filter(Boolean),
       styleSrc: [
         "'self'",
         "'unsafe-inline'",
         "https://fonts.googleapis.com",
-        "https://checkout.razorpay.com"
+        "https://*.razorpay.com"
       ],
       imgSrc: ["'self'", "data:", "blob:", "https:", "https://*.razorpay.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-      connectSrc: ["'self'", "https://api.razorpay.com", "https://lumberjack.razorpay.com"],
-      frameSrc: ["'self'", "https://api.razorpay.com", "https://checkout.razorpay.com"],
+      connectSrc: ["'self'", "https://*.razorpay.com"],
+      frameSrc: ["'self'", "https://*.razorpay.com"],
       objectSrc: ["'none'"],
       baseUri: ["'self'"],
       upgradeInsecureRequests: []
