@@ -26,7 +26,9 @@ const sequelize = new Sequelize(
       ssl: process.env.DB_SSL === 'true' ? {
         require: true,
         rejectUnauthorized: false
-      } : false
+      } : false,
+      // Force IPv4 to prevent ENETUNREACH on environments with limited IPv6 support
+      family: 4
     },
     define: {
       timestamps: true,

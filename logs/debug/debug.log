@@ -2531,3 +2531,4 @@
 {"level":"info","message":"Agreement expiry cron job started with schedule: 0 1 * * * (Asia/Kolkata)","timestamp":"2026-03-13 22:16:11"}
 {"level":"info","message":"Overdue reminder cron job started with schedule: 0 9 * * * (Asia/Kolkata)","timestamp":"2026-03-13 22:16:11"}
 {"level":"info","message":"Active cron jobs: cleanup, dues, agreementExpiry, overdueReminder","timestamp":"2026-03-13 22:16:11"}
+{"level":"info","message":"Received SIGINT. Starting graceful shutdown...","timestamp":"2026-03-13 22:32:20"}
