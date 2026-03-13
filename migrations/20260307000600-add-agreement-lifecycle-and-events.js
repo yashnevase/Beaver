@@ -46,9 +46,18 @@ module.exports = {
       onUpdate: 'CASCADE'
     });
 
-    await queryInterface.sequelize.query(
-      "ALTER TABLE agreements MODIFY status ENUM('draft','pending_deposit','active','expired','revoked','rejected','closed') NOT NULL DEFAULT 'draft'"
-    );
+    if (queryInterface.sequelize.options.dialect === 'postgres') {
+      const statuses = ['pending_deposit', 'rejected', 'closed'];
+      for (const status of statuses) {
+        await queryInterface.sequelize.query(
+          `ALTER TYPE "public"."enum_agreements_status" ADD VALUE IF NOT EXISTS '${status}'`
+        ).catch(() => {}); // Ignore duplicate errors if not using IF NOT EXISTS
+      }
+    } else {
+      await queryInterface.sequelize.query(
+        "ALTER TABLE agreements MODIFY status ENUM('draft','pending_deposit','active','expired','revoked','rejected','closed') NOT NULL DEFAULT 'draft'"
+      );
+    }
 
     await queryInterface.addIndex('agreements', ['agreement_number']);
     await queryInterface.addIndex('agreements', ['invite_id']);

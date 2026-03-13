@@ -2535,3 +2535,14 @@
 {"level":"info","message":"Overdue reminder cron job started with schedule: 0 9 * * * (Asia/Kolkata)","timestamp":"2026-03-13 22:16:11"}
 {"level":"info","message":"Active cron jobs: cleanup, dues, agreementExpiry, overdueReminder","timestamp":"2026-03-13 22:16:11"}
 {"level":"info","message":"Received SIGINT. Starting graceful shutdown...","timestamp":"2026-03-13 22:32:20"}
+{"level":"info","message":"Swagger documentation available at /api-docs","timestamp":"2026-03-13 23:28:19"}
+{"level":"info","message":"Single process started on port 3001 in development mode","timestamp":"2026-03-13 23:28:19"}
+{"level":"info","message":"✓ Database connection established successfully","timestamp":"2026-03-13 23:28:20"}
+{"level":"warn","message":"Table sync warning (non-fatal):","timestamp":"2026-03-13 23:28:21"}
+{"level":"info","message":"Socket.io initialized","timestamp":"2026-03-13 23:28:21"}
+{"level":"info","message":"Initializing cron jobs...","timestamp":"2026-03-13 23:28:21"}
+{"level":"info","message":"Cleanup cron job started with schedule: 0 * * * * (Asia/Kolkata)","timestamp":"2026-03-13 23:28:21"}
+{"level":"info","message":"Dues cron job started with schedule: 0 8 * * * (Asia/Kolkata)","timestamp":"2026-03-13 23:28:21"}
+{"level":"info","message":"Agreement expiry cron job started with schedule: 0 1 * * * (Asia/Kolkata)","timestamp":"2026-03-13 23:28:21"}
+{"level":"info","message":"Overdue reminder cron job started with schedule: 0 9 * * * (Asia/Kolkata)","timestamp":"2026-03-13 23:28:21"}
+{"level":"info","message":"Active cron jobs: cleanup, dues, agreementExpiry, overdueReminder","timestamp":"2026-03-13 23:28:21"}

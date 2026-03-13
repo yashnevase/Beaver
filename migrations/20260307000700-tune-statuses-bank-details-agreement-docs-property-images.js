@@ -1,19 +1,35 @@
 'use strict';
 
 const addColumnIfNotExists = async (qi, table, column, definition) => {
-  const [cols] = await qi.sequelize.query(
-    `SHOW COLUMNS FROM \`${table}\` WHERE Field = '${column}'`
-  );
-  if (cols.length === 0) {
-    await qi.addColumn(table, column, definition);
+  if (qi.sequelize.options.dialect === 'postgres') {
+    const [cols] = await qi.sequelize.query(
+      `SELECT column_name FROM information_schema.columns WHERE table_name = '${table}' AND column_name = '${column}'`
+    );
+    if (cols.length === 0) {
+      await qi.addColumn(table, column, definition);
+    }
+  } else {
+    const [cols] = await qi.sequelize.query(
+      `SHOW COLUMNS FROM \`${table}\` WHERE Field = '${column}'`
+    );
+    if (cols.length === 0) {
+      await qi.addColumn(table, column, definition);
+    }
   }
 };
 
 const tableExists = async (qi, table) => {
-  const [rows] = await qi.sequelize.query(
-    `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '${table}' AND TABLE_SCHEMA = DATABASE()`
-  );
-  return rows.length > 0;
+  if (qi.sequelize.options.dialect === 'postgres') {
+    const [rows] = await qi.sequelize.query(
+      `SELECT table_name FROM information_schema.tables WHERE table_name = '${table}' AND table_schema = 'public'`
+    );
+    return rows.length > 0;
+  } else {
+    const [rows] = await qi.sequelize.query(
+      `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = '${table}' AND TABLE_SCHEMA = DATABASE()`
+    );
+    return rows.length > 0;
+  }
 };
 
 module.exports = {
@@ -31,31 +47,56 @@ module.exports = {
     await addColumnIfNotExists(queryInterface, 'users', 'date_of_birth', {
       type: Sequelize.DATEONLY, allowNull: true
     });
+
+    if (queryInterface.sequelize.options.dialect === 'postgres') {
+      try {
+        await queryInterface.sequelize.query(
+          "ALTER TYPE \"public\".\"enum_users_gender\" ADD VALUE IF NOT EXISTS 'male'"
+        );
+        await queryInterface.sequelize.query(
+          "ALTER TYPE \"public\".\"enum_users_gender\" ADD VALUE IF NOT EXISTS 'female'"
+        );
+        await queryInterface.sequelize.query(
+          "ALTER TYPE \"public\".\"enum_users_gender\" ADD VALUE IF NOT EXISTS 'other'"
+        );
+      } catch (e) {} 
+    }
+
     await addColumnIfNotExists(queryInterface, 'users', 'gender', {
       type: Sequelize.ENUM('male', 'female', 'other'), allowNull: true
     });
 
     // 2. Agreement: change status enum, add renewed_from, certificate_number
-    // First expand enum to include ALL old + new values so data migration works
-    await queryInterface.sequelize.query(
-      "ALTER TABLE agreements MODIFY status ENUM('draft','pending_deposit','active','expired','revoked','rejected','closed','started','ended') NOT NULL DEFAULT 'draft'"
-    );
+    if (queryInterface.sequelize.options.dialect === 'postgres') {
+      const newStatuses = ['started', 'ended'];
+      for (const status of newStatuses) {
+        await queryInterface.sequelize.query(
+          `ALTER TYPE "public"."enum_agreements_status" ADD VALUE IF NOT EXISTS '${status}'`
+        ).catch(() => {});
+      }
+    } else {
+      await queryInterface.sequelize.query(
+        "ALTER TABLE agreements MODIFY status ENUM('draft','pending_deposit','active','expired','revoked','rejected','closed','started','ended') NOT NULL DEFAULT 'draft'"
+      );
+    }
 
     // Now migrate existing data to new statuses
     await queryInterface.sequelize.query(
-      "UPDATE agreements SET status = 'started' WHERE status = 'active'"
+      "UPDATE agreements SET status = 'started' WHERE status = 'active' OR status = 'started'"
     );
     await queryInterface.sequelize.query(
-      "UPDATE agreements SET status = 'closed' WHERE status = 'revoked'"
+      "UPDATE agreements SET status = 'closed' WHERE status = 'revoked' OR status = 'closed'"
     );
     await queryInterface.sequelize.query(
-      "UPDATE agreements SET status = 'ended' WHERE status = 'expired'"
+      "UPDATE agreements SET status = 'ended' WHERE status = 'expired' OR status = 'ended'"
     );
 
-    // Now shrink enum to only the final set
-    await queryInterface.sequelize.query(
-      "ALTER TABLE agreements MODIFY status ENUM('draft','pending_deposit','started','ended','closed','rejected') NOT NULL DEFAULT 'draft'"
-    );
+    // Final cleanup only for MySQL; Postgres keeps all enum values by design
+    if (queryInterface.sequelize.options.dialect === 'mysql') {
+      await queryInterface.sequelize.query(
+        "ALTER TABLE agreements MODIFY status ENUM('draft','pending_deposit','started','ended','closed','rejected') NOT NULL DEFAULT 'draft'"
+      );
+    }
 
     await addColumnIfNotExists(queryInterface, 'agreements', 'renewed_from', {
       type: Sequelize.INTEGER,
